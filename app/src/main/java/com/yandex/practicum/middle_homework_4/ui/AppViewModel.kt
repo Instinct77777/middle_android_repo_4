@@ -28,8 +28,8 @@ class AppViewModel(
 
     @OptIn(ExperimentalPagingApi::class)
     fun getNews(): Flow<PagingData<News>> =
-    // Допишите реализацию метода, используя класс Pager()
-    // Для реализации фабрики используйте newsDatabase
+    //         Допишите реализацию метода, используя класс Pager()
+    // Для   реализации фабрики используйте newsDatabase
     // Реализуйте NewsRemoteMediator() используя newsService и newsDatabase
 
     fun attachPagingItems(paging: LazyPagingItems<News>?) {
