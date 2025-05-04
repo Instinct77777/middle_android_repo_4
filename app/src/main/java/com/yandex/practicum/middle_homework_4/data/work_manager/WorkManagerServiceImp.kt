@@ -24,47 +24,51 @@ class WorkManagerServiceImp(
     private val settingsRepository: SettingsRepository,
     private val scope: CoroutineScope = CoroutineScope(Job() + Dispatchers.IO)
 ) : WorkManagerService {
-    private var period:Long = DEFAULT_REFRESH_PERIOD
+
+    private var period: Long = DEFAULT_REFRESH_PERIOD
     private var delayed: Long = FIST_LAUNCH_DELAY
 
     init {
         scope.launch {
-            settingsRepository.state.collect{ setting ->
+            settingsRepository.state.collect { setting ->
                 period = setting.periodic
                 delayed = setting.delayed
-                Log.i(TAG, "DataStoreService get data : period = $period | delayed $delayed")
+                Log.i(TAG, "DataStoreService get data: period = $period | delayed = $delayed")
                 launchRefreshWork()
             }
         }
     }
 
     private fun createConstraints(): Constraints {
-        // Реализуйте метод, возвращающий Constraints
-        // В условиях укажите необходимость наличия интернет соединения.
+        return Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
     }
 
     private fun createRequest(repeat: Long, delayed: Long): PeriodicWorkRequest {
         val networkConstraints = createConstraints()
-        // Допишите реализацию метода и верните WorkRequest на периодическую задачу для RefreshWorker
-        // Интервал запуска задачи (в минутах)  = repeat.
-        // Отсрочка запуска задачи в (секундах) = delayed.
-        // Не забудьте в билдере указать constraints.
+        return PeriodicWorkRequestBuilder<RefreshWorker>(
+            repeat.toLong(),
+            TimeUnit.MINUTES,
+            delayed.toLong(),
+            TimeUnit.SECONDS
+        )
+            .setConstraints(networkConstraints)
+            .build()
     }
 
     override fun launchRefreshWork() {
-        val request: PeriodicWorkRequest =
-            createRequest(repeat = period, delayed = delayed)
+        val request = createRequest(repeat = period, delayed = delayed)
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            uniqueWorkName = REFRESH_WORK_NAME,
-            existingPeriodicWorkPolicy = ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
-            request = request
+            REFRESH_WORK_NAME,
+            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+            request
         )
     }
 
     override fun cancelRefreshWork() {
-        WorkManager.getInstance(context).cancelUniqueWork(uniqueWorkName = REFRESH_WORK_NAME)
+        WorkManager.getInstance(context).cancelUniqueWork(REFRESH_WORK_NAME)
     }
-
 
     companion object {
         const val REFRESH_WORK_NAME = "Refresh work"
